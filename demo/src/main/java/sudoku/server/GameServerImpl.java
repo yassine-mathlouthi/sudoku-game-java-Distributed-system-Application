@@ -1,54 +1,57 @@
 package sudoku.server;
 
 import java.rmi.RemoteException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.ArrayList;
 
 import common.CallbackInterface;
 import common.GameInterface;
 
 public class GameServerImpl implements GameInterface {
     private Grid grid;
-    private List<CallbackInterface> clients;
-    private final int MAX_CLIENTS = 3;
+    private CallbackInterface client;
+    private GameFactoryImpl factory;
+    private boolean clientRegistered = false;
 
-    public GameServerImpl() throws RemoteException {
+    public GameServerImpl(GameFactoryImpl factory) throws RemoteException {
+        this.factory = factory;
         grid = new Grid();
-        clients = new ArrayList<>();
         displayGrid();
     }
 
+    private void displayGrid() {
+        System.out.println("Client grid:\n" + grid.toString());
+    }
+
     @Override
-    public synchronized String getCurrentGrid() throws RemoteException {
+    public synchronized String getCurrentGrid(CallbackInterface client) throws RemoteException {
+        if (!clientRegistered) {
+            throw new RemoteException("Client not registered with this game instance.");
+        }
         System.out.println("Client requested current grid:\n" + grid.toString());
         return grid.toString();
     }
 
-    private void displayGrid() {
-        System.out.println("Server grid:\n" + grid.toString());
-    }
-
     @Override
     public synchronized void registerClient(CallbackInterface client) throws RemoteException {
-        System.out.println("Registering client. Current client count: " + clients.size());
-        if (clients.size() < MAX_CLIENTS) {
-            clients.add(client);
-            System.out.println("Client added. New client count: " + clients.size());
-            client.showMessage("Welcome! Registered as player " + clients.size());
-            System.out.println("Client registered. Total clients: " + clients.size());
-        } else {
-            client.showMessage("ERROR: Server full. Try again later.");
-            System.out.println("Client rejected. Server full. Total clients: " + clients.size());
-            
+        if (clientRegistered) {
+            client.showMessage("ERROR: Game instance already in use.");
+            System.out.println("Client rejected: Game instance already in use.");
+            return;
         }
+        this.client = client;
+        clientRegistered = true;
+        System.out.println("Client registered with game instance.");
+        client.showMessage("Welcome! Registered as player.");
+        displayGrid();
     }
 
     @Override
-    public synchronized String makeMove(int row, int col, String value) throws RemoteException {
+    public synchronized String makeMove(CallbackInterface client, int row, int col, String value) throws RemoteException {
+        if (!clientRegistered) {
+            return "ERROR: Client not registered with this game instance.";
+        }
         if (grid.isValidMove(row, col, value)) {
             grid.setCell(row, col, value);
-            broadcastGrid();
+            broadcastGridToClient();
             return "SUCCESS: Move accepted.";
         } else {
             return "ERROR: Invalid move. Please try again.";
@@ -56,47 +59,50 @@ public class GameServerImpl implements GameInterface {
     }
 
     @Override
-    public synchronized boolean isGameOver() throws RemoteException {
+    public synchronized boolean isGameOver(CallbackInterface client) throws RemoteException {
+        if (!clientRegistered) {
+            throw new RemoteException("Client not registered with this game instance.");
+        }
         return grid.isComplete();
     }
 
     @Override
-    public synchronized void resetGame() throws RemoteException {
+    public synchronized void resetGame(CallbackInterface client) throws RemoteException {
+        if (!clientRegistered) {
+            throw new RemoteException("Client not registered with this game instance.");
+        }
         grid = new Grid();
         displayGrid();
-        broadcastGrid();
-        broadcastMessage("Game reset! New puzzle started.");
+        broadcastGridToClient();
+        broadcastMessageToClient("Game reset! New puzzle started.");
     }
 
-    private void broadcastGrid() throws RemoteException {
-        List<CallbackInterface> toRemove = new ArrayList<>();
-        for (CallbackInterface client : clients) {
-            try {
-                client.showGrid(grid.toString());
-            } catch (RemoteException e) {
-                System.out.println("Client failed to receive grid update: " + e.getMessage());
-                toRemove.add(client);
-            }
-        }
-        if (!toRemove.isEmpty()) {
-            clients.removeAll(toRemove);
-            System.out.println("Removed " + toRemove.size() + " disconnected clients. Total clients: " + clients.size());
+    private void broadcastGridToClient() throws RemoteException {
+        try {
+            client.showGrid(grid.toString());
+        } catch (RemoteException e) {
+            System.out.println("Client failed to receive grid update: " + e.getMessage());
+            disconnectClient();
         }
     }
 
-    private void broadcastMessage(String message) throws RemoteException {
-        List<CallbackInterface> toRemove = new ArrayList<>();
-        for (CallbackInterface client : clients) {
-            try {
-                client.showMessage(message);
-            } catch (RemoteException e) {
-                System.out.println("Client failed to receive message: " + e.getMessage());
-                toRemove.add(client);
-            }
+    private void broadcastMessageToClient(String message) throws RemoteException {
+        try {
+            client.showMessage(message);
+        } catch (RemoteException e) {
+            System.out.println("Client failed to receive message: " + e.getMessage());
+            disconnectClient();
         }
-        if (!toRemove.isEmpty()) {
-            clients.removeAll(toRemove);
-            System.out.println("Removed " + toRemove.size() + " disconnected clients. Total clients: " + clients.size());
+    }
+
+    private void disconnectClient() {
+        try {
+            clientRegistered = false;
+            client = null;
+            factory.clientDisconnected();
+            System.out.println("Client disconnected from game instance.");
+        } catch (Exception e) {
+            System.err.println("Error notifying factory of disconnection: " + e.getMessage());
         }
     }
 }

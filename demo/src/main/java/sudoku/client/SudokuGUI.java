@@ -12,7 +12,6 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.scene.effect.DropShadow;
-import javafx.scene.paint.Color;
 
 import java.rmi.RemoteException;
 import java.util.ArrayList;
@@ -20,7 +19,7 @@ import java.util.List;
 
 public class SudokuGUI {
     private GameInterface server;
-    private CallbackInterface callback;
+    private CallbackInterface callback; // This is the client itself
     private TextField[][] gridFields;
     private Label messageLabel;
     private Button submitButton;
@@ -78,7 +77,7 @@ public class SudokuGUI {
         submitButton.setOnAction(e -> submitMove());
         replayButton.setOnAction(e -> {
             try {
-                server.resetGame();
+                server.resetGame(callback);
                 messageLabel.setText("Game reset! New puzzle started.");
             } catch (RemoteException ex) {
                 messageLabel.setText("Error resetting game: " + ex.getMessage());
@@ -91,18 +90,6 @@ public class SudokuGUI {
         primaryStage.setTitle("Sudoku Game");
         primaryStage.setScene(scene);
         primaryStage.show();
-
-        try {
-            System.out.println("Requesting initial grid in start...");
-            String initialGrid = server.getCurrentGrid();
-            System.out.println("Received initial grid in start:\n" + initialGrid);
-            updateGrid(initialGrid);
-        } catch (RemoteException e) {
-            System.err.println("Error requesting initial grid: " + e.getMessage());
-            e.printStackTrace();
-            messageLabel.setText("Error loading grid: " + e.getMessage());
-            messageLabel.setTextFill(Color.RED);
-        }
     }
 
     private void styleButton(Button button) {
@@ -172,13 +159,13 @@ public class SudokuGUI {
                 String value = gridFields[selectedRow][selectedCol].getText();
                 if (!value.isEmpty()) {
                     System.out.println("Submitting move: row=" + selectedRow + ", col=" + selectedCol + ", value=" + value);
-                    String response = server.makeMove(selectedRow, selectedCol, value);
+                    String response = server.makeMove(callback, selectedRow, selectedCol, value);
                     System.out.println("Server response: " + response);
                     Platform.runLater(() -> {
                         messageLabel.setText(response);
                         messageLabel.setTextFill(response.startsWith("ERROR") ? Color.RED : Color.GREEN);
                         try {
-                            if (response.startsWith("SUCCESS") && server.isGameOver()) {
+                            if (response.startsWith("SUCCESS") && server.isGameOver(callback)) {
                                 messageLabel.setText("Congratulations! Puzzle completed.");
                                 showGameOverDialog();
                             }
@@ -209,7 +196,7 @@ public class SudokuGUI {
         alert.showAndWait().ifPresent(response -> {
             if (response == yesButton) {
                 try {
-                    server.resetGame();
+                    server.resetGame(callback);
                 } catch (RemoteException e) {
                     messageLabel.setText("Error resetting game: " + e.getMessage());
                     messageLabel.setTextFill(Color.RED);

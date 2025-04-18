@@ -6,17 +6,22 @@ import java.rmi.server.UnicastRemoteObject;
 import common.GameInterface;
 
 public class GameFactoryImpl implements GameFactory {
-    private GameInterface gameServer;
-
-    public GameFactoryImpl() throws RemoteException {
-        GameServerImpl game = new GameServerImpl();
-        gameServer = (GameInterface) UnicastRemoteObject.exportObject(game, 0);
-        System.out.println("GameFactoryImpl created with GameServerImpl instance: " + game);
-    }
+    private int currentClients = 0;
+    private final int MAX_CLIENTS = 3;
 
     @Override
-    public GameInterface createGame() throws RemoteException {
-        System.out.println("Returning existing GameServerImpl instance: " + gameServer);
-        return gameServer;
+    public synchronized GameInterface createGame() throws RemoteException {
+        if (currentClients >= MAX_CLIENTS) {
+            throw new RemoteException("ERROR: Server full. Try again later.");
+        }
+        GameServerImpl game = new GameServerImpl(this);
+        currentClients++;
+        System.out.println("Created new GameServerImpl instance. Current clients: " + currentClients);
+        return (GameInterface) UnicastRemoteObject.exportObject(game, 0);
+    }
+
+    public synchronized void clientDisconnected() {
+        currentClients--;
+        System.out.println("Client disconnected. Current clients: " + currentClients);
     }
 }
