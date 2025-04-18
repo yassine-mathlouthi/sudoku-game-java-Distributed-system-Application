@@ -1,0 +1,5 @@
+grant {
+    permission java.net.SocketPermission "localhost:1098", "connect,accept,listen,resolve";
+    permission java.rmi.permission "allow";
+    permission java.io.FilePermission "<<ALL FILES>>", "read,write";
+};
