@@ -3,6 +3,7 @@ package sudoku.server;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ArrayList;
 
 import common.CallbackInterface;
 import common.GameInterface;
@@ -10,18 +11,20 @@ import common.GameInterface;
 public class GameServerImpl implements GameInterface {
     private Grid grid;
     private List<CallbackInterface> clients;
-    private final int MAX_CLIENTS = 10;
+    private final int MAX_CLIENTS = 3;
 
     public GameServerImpl() throws RemoteException {
         grid = new Grid();
         clients = new ArrayList<>();
         displayGrid();
     }
+
     @Override
-public synchronized String getCurrentGrid() throws RemoteException {
-    System.out.println("Client requested current grid:\n" + grid.toString());
-    return grid.toString();
-}
+    public synchronized String getCurrentGrid() throws RemoteException {
+        System.out.println("Client requested current grid:\n" + grid.toString());
+        return grid.toString();
+    }
+
     private void displayGrid() {
         System.out.println("Server grid:\n" + grid.toString());
     }
@@ -37,6 +40,7 @@ public synchronized String getCurrentGrid() throws RemoteException {
         } else {
             client.showMessage("ERROR: Server full. Try again later.");
             System.out.println("Client rejected. Server full. Total clients: " + clients.size());
+            
         }
     }
 
@@ -65,25 +69,34 @@ public synchronized String getCurrentGrid() throws RemoteException {
     }
 
     private void broadcastGrid() throws RemoteException {
-        List<CallbackInterface> clientsCopy = new ArrayList<>(clients);
-        for (CallbackInterface client : clientsCopy) {
+        List<CallbackInterface> toRemove = new ArrayList<>();
+        for (CallbackInterface client : clients) {
             try {
                 client.showGrid(grid.toString());
             } catch (RemoteException e) {
-                clients.remove(client);
-                System.out.println("Client disconnected. Total clients: " + clients.size());
+                System.out.println("Client failed to receive grid update: " + e.getMessage());
+                toRemove.add(client);
             }
+        }
+        if (!toRemove.isEmpty()) {
+            clients.removeAll(toRemove);
+            System.out.println("Removed " + toRemove.size() + " disconnected clients. Total clients: " + clients.size());
         }
     }
 
     private void broadcastMessage(String message) throws RemoteException {
-        List<CallbackInterface> clientsCopy = new ArrayList<>(clients);
-        for (CallbackInterface client : clientsCopy) {
+        List<CallbackInterface> toRemove = new ArrayList<>();
+        for (CallbackInterface client : clients) {
             try {
                 client.showMessage(message);
             } catch (RemoteException e) {
-                clients.remove(client);
+                System.out.println("Client failed to receive message: " + e.getMessage());
+                toRemove.add(client);
             }
+        }
+        if (!toRemove.isEmpty()) {
+            clients.removeAll(toRemove);
+            System.out.println("Removed " + toRemove.size() + " disconnected clients. Total clients: " + clients.size());
         }
     }
 }

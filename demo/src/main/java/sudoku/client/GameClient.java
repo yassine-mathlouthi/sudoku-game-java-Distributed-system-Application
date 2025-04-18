@@ -1,4 +1,3 @@
-// GameClient.java
 package sudoku.client;
 
 import common.CallbackInterface;
@@ -8,12 +7,15 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.scene.control.Alert;
 import javafx.stage.Stage;
 import sudoku.server.GameFactory;
 
 public class GameClient extends Application implements CallbackInterface {
     private GameInterface server;
     private SudokuGUI gui;
+    private boolean registrationFailed = false;
 
     @Override
     public void init() throws Exception {
@@ -46,6 +48,11 @@ public class GameClient extends Application implements CallbackInterface {
 
     @Override
     public void start(Stage primaryStage) {
+        if (registrationFailed) {
+            System.err.println("Cannot start GUI: Client registration failed.");
+            Platform.exit();
+            return;
+        }
         System.out.println("Launching JavaFX application...");
         gui.start(primaryStage);
     }
@@ -53,7 +60,18 @@ public class GameClient extends Application implements CallbackInterface {
     @Override
     public void showMessage(String message) throws RemoteException {
         System.out.println("Received message from server: " + message);
-        if (gui != null) {
+        if (message.equals("ERROR: Server full. Try again later.")) {
+            registrationFailed = true;
+            System.err.println("Registration failed: Server is full.");
+            Platform.runLater(() -> {
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Connection Error");
+                alert.setHeaderText("Server Full");
+                alert.setContentText("The server is full. Please try again later.");
+                alert.showAndWait();
+                Platform.exit();
+            });
+        } else if (gui != null) {
             gui.showMessage(message);
         } else {
             System.err.println("GUI is null, cannot show message: " + message);
