@@ -4,7 +4,7 @@ module sudoku {
     requires javafx.graphics;
     requires java.rmi;
     opens sudoku to javafx.fxml;
-    exports sudoku;
+    
     exports sudoku.server;
     exports sudoku.client;
     exports common;
