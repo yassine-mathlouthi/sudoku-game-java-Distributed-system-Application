@@ -7,7 +7,7 @@ import common.GameInterface;
 
 public class GameFactoryImpl implements GameFactory {
     private int currentClients = 0;
-    private final int MAX_CLIENTS = 3;
+    private final int MAX_CLIENTS = 10;
 
     @Override
     public synchronized GameInterface createGame() throws RemoteException {

@@ -38,7 +38,7 @@ public class Grid {
         Collections.shuffle(positions, rand);
 
         // Remove cells one by one while checking solvability
-        int cellsToKeep = rand.nextInt(10) + 10; // Between 20 clues kept
+        int cellsToKeep = rand.nextInt(10) + 50; // Between 20 clues kept
         int targetToRemove = (SIZE * SIZE) - cellsToKeep;
         int removed = 0;
 
