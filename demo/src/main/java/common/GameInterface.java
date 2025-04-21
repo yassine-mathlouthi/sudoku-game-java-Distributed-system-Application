@@ -9,4 +9,5 @@ public interface GameInterface extends Remote {
     boolean isGameOver(CallbackInterface client) throws RemoteException;
     void resetGame(CallbackInterface client) throws RemoteException;
     String getCurrentGrid(CallbackInterface client) throws RemoteException;
+    void disconnect(CallbackInterface client) throws RemoteException; // New method
 }

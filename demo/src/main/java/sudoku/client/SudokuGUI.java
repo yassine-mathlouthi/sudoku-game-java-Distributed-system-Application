@@ -30,7 +30,7 @@ public class SudokuGUI {
     private Stage primaryStage;
     private int selectedRow = -1;
     private int selectedCol = -1;
-    private Set<String> userEnteredCells; // Tracks user-entered cells as "row,col"
+    private Set<String> userEnteredCells;
 
     public SudokuGUI() {
         System.out.println("SudokuGUI instance created: " + this);
@@ -89,12 +89,33 @@ public class SudokuGUI {
                 messageLabel.setTextFill(Color.RED);
             }
         });
-        quitButton.setOnAction(e -> Platform.exit());
+        quitButton.setOnAction(e -> {
+            disconnectAndExit();
+        });
+
+        // Handle window close request (e.g., red button)
+        stage.setOnCloseRequest(event -> {
+            disconnectAndExit();
+        });
 
         Scene scene = new Scene(root, 650, 650);
         primaryStage.setTitle("Sudoku Game");
         primaryStage.setScene(scene);
         primaryStage.show();
+    }
+
+    private void disconnectAndExit() {
+        try {
+            if (server != null && callback != null) {
+                server.disconnect(callback);
+                System.out.println("Notified server of disconnection");
+            } else {
+                System.err.println("Cannot disconnect: server or callback is null");
+            }
+        } catch (RemoteException ex) {
+            System.err.println("Error disconnecting from server: " + ex.getMessage());
+        }
+        Platform.exit();
     }
 
     private void styleButton(Button button) {
@@ -249,7 +270,7 @@ public class SudokuGUI {
                     messageLabel.setTextFill(Color.RED);
                 }
             } else {
-                Platform.exit();
+                disconnectAndExit();
             }
         });
     }
