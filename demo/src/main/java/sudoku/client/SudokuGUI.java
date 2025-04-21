@@ -195,7 +195,6 @@ public class SudokuGUI {
                             selectedField.setText(value.toLowerCase());
                             selectedField.setEditable(true);
                             selectedField.setStyle("-fx-background-color: #e0ffe0;" + getBaseStyle(selectedRow, selectedCol));
-                            System.out.println("Cell [" + selectedRow + "," + selectedCol + "] updated: value=" + value.toLowerCase() + ", editable=" + selectedField.isEditable() + ", userEnteredCells=" + userEnteredCells);
                             try {
                                 boolean gameOver = server.isGameOver(callback);
                                 System.out.println("Game over check: " + gameOver);
@@ -221,7 +220,6 @@ public class SudokuGUI {
                                         // Revert to green if previously valid, else white
                                         String revertColor = userEnteredCells.contains(cellKey) ? "#e0ffe0" : "white";
                                         selectedField.setStyle("-fx-background-color: " + revertColor + ";" + getBaseStyle(selectedRow, selectedCol));
-                                        System.out.println("Cell [" + selectedRow + "," + selectedCol + "] reverted: color=" + revertColor + ", userEnteredCells=" + userEnteredCells);
                                     });
                                 } catch (InterruptedException e) {
                                     Thread.currentThread().interrupt();
@@ -313,7 +311,6 @@ public class SudokuGUI {
 
                 for (int row = 0; row < 9; row++) {
                     String line = dataLines.get(row);
-                    System.out.println("Parsing row " + row + ": " + line);
                     String[] cells = line.substring(line.indexOf('|') + 1).split("\\|");
 
                     if (cells.length < 9) {
@@ -322,7 +319,6 @@ public class SudokuGUI {
 
                     for (int col = 0; col < 9; col++) {
                         String cell = cells[col].trim();
-                        System.out.println("Cell [" + row + "," + col + "] = " + cell);
                         TextField field = gridFields[row][col];
                         String cellKey = row + "," + col;
 
@@ -331,7 +327,6 @@ public class SudokuGUI {
                             field.setEditable(true);
                             field.setStyle("-fx-background-color: white;" + getBaseStyle(row, col));
                             userEnteredCells.remove(cellKey);
-                            System.out.println("Cell [" + row + "," + col + "] set: empty, editable=true, userEnteredCells=" + userEnteredCells);
                         } else if (cell.matches("[1-9]")) {
                             String displayValue = cell.toLowerCase();
                             field.setText(displayValue);
@@ -339,12 +334,10 @@ public class SudokuGUI {
                                 field.setEditable(true);
                                 field.setStyle("-fx-background-color: #e0ffe0;" + getBaseStyle(row, col));
                                 userEnteredCount++;
-                                System.out.println("Cell [" + row + "," + col + "] set: user-entered, value=" + displayValue + ", editable=true, userEnteredCells=" + userEnteredCells);
                             } else {
                                 field.setEditable(false);
                                 field.setStyle("-fx-background-color: #d3d3d3;" + getBaseStyle(row, col));
                                 preFilledCount++;
-                                System.out.println("Cell [" + row + "," + col + "] set: pre-filled, value=" + displayValue + ", editable=false, userEnteredCells=" + userEnteredCells);
                             }
                         } else {
                             System.err.println("Invalid cell value at [" + row + "," + col + "]: " + cell);
@@ -352,7 +345,6 @@ public class SudokuGUI {
                             field.setEditable(true);
                             field.setStyle("-fx-background-color: white;" + getBaseStyle(row, col));
                             userEnteredCells.remove(cellKey);
-                            System.out.println("Cell [" + row + "," + col + "] set: invalid, cleared, editable=true, userEnteredCells=" + userEnteredCells);
                         }
                     }
                 }

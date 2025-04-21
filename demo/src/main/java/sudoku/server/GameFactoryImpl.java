@@ -50,7 +50,6 @@ public class GameFactoryImpl implements GameFactory {
     public synchronized void updateClientActivity(GameServerImpl game) {
         if (activeClients.containsKey(game)) {
             activeClients.put(game, System.currentTimeMillis());
-            System.out.println("Updated activity for client: " + game);
         } else {
             System.err.println("Client not found for activity update: " + game);
         }

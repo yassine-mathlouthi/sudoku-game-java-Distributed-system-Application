@@ -1,9 +1,0 @@
-grant {
-    permission java.net.SocketPermission "localhost:1098", "connect,accept,listen,resolve";
-    permission java.rmi.permission "allow";
-    permission java.io.FilePermission "<<ALL FILES>>", "read,write";
-
-    // Ajout pour permettre le chargement depuis le codebase
-    permission java.net.SocketPermission "localhost:80", "connect,resolve";
-    permission java.net.SocketPermission "192.168.1.100:80", "connect,resolve"; // Si serveur distant
-};
