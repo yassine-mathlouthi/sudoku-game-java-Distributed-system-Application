@@ -21,7 +21,7 @@ import java.util.Set;
 
 public class SudokuGUI {
     private GameInterface server;
-    private CallbackInterface callback; // This is the client itself
+    private CallbackInterface callback;
     private TextField[][] gridFields;
     private Label messageLabel;
     private Button submitButton;
@@ -30,7 +30,7 @@ public class SudokuGUI {
     private Stage primaryStage;
     private int selectedRow = -1;
     private int selectedCol = -1;
-    private Set<String> userEnteredCells; // Tracks user-entered cells as "row,col"
+    private Set<String> userEnteredCells;
 
     public SudokuGUI() {
         System.out.println("SudokuGUI instance created: " + this);
@@ -73,7 +73,7 @@ public class SudokuGUI {
 
         styleButton(submitButton);
         styleButton(replayButton);
-        styleButton(quitButton);
+        styleRedButton(quitButton);
 
         controlBox.getChildren().addAll(submitButton, replayButton, quitButton);
         root.setTop(controlBox);
@@ -82,19 +82,45 @@ public class SudokuGUI {
         replayButton.setOnAction(e -> {
             try {
                 server.resetGame(callback);
-                userEnteredCells.clear(); // Clear user-entered cells on reset
+                userEnteredCells.clear();
                 messageLabel.setText("Game reset! New puzzle started.");
             } catch (RemoteException ex) {
                 messageLabel.setText("Error resetting game: " + ex.getMessage());
                 messageLabel.setTextFill(Color.RED);
             }
         });
-        quitButton.setOnAction(e -> Platform.exit());
+        quitButton.setOnAction(e -> {
+            disconnectAndExit();
+        });
+
+        // Handle window close request (e.g., red button)
+        stage.setOnCloseRequest(event -> {
+            disconnectAndExit();
+        });
 
         Scene scene = new Scene(root, 650, 650);
         primaryStage.setTitle("Sudoku Game");
         primaryStage.setScene(scene);
         primaryStage.show();
+    }
+    private void styleRedButton(Button button) {
+        button.setStyle("-fx-background-color: #f44336; -fx-text-fill: white; -fx-font-size: 14px; -fx-border-radius: 5; -fx-padding: 10 20;");
+        button.setEffect(new DropShadow(10, Color.GRAY));
+        button.setOnMouseEntered(e -> button.setStyle("-fx-background-color: #d32f2f; -fx-text-fill: white; -fx-font-size: 14px; -fx-border-radius: 5; -fx-padding: 10 20;"));
+        button.setOnMouseExited(e -> button.setStyle("-fx-background-color: #f44336; -fx-text-fill: white; -fx-font-size: 14px; -fx-border-radius: 5; -fx-padding: 10 20;"));
+    }
+    private void disconnectAndExit() {
+        try {
+            if (server != null && callback != null) {
+                server.disconnect(callback);
+                System.out.println("Notified server of disconnection");
+            } else {
+                System.err.println("Cannot disconnect: server or callback is null");
+            }
+        } catch (RemoteException ex) {
+            System.err.println("Error disconnecting from server: " + ex.getMessage());
+        }
+        Platform.exit();
     }
 
     private void styleButton(Button button) {
@@ -110,16 +136,16 @@ public class SudokuGUI {
         gridPane.setHgap(5);
         gridPane.setVgap(5);
         gridPane.setPadding(new Insets(10));
-
+    
         gridFields = new TextField[9][9];
-
+    
         for (int row = 0; row < 9; row++) {
             for (int col = 0; col < 9; col++) {
                 TextField field = new TextField();
                 field.setPrefSize(50, 50);
                 field.setAlignment(Pos.CENTER);
                 field.setFont(new Font(18));
-
+    
                 int finalRow = row;
                 int finalCol = col;
                 field.setOnMouseClicked(e -> {
@@ -127,35 +153,21 @@ public class SudokuGUI {
                     selectedCol = finalCol;
                     System.out.println("Selected cell [" + finalRow + "," + finalCol + "], editable=" + field.isEditable());
                 });
-
+    
                 field.textProperty().addListener((obs, oldVal, newVal) -> {
                     if (!newVal.matches("[1-9]?") && !newVal.isEmpty()) {
                         field.setText(oldVal);
                     }
                 });
-
-                if ((row / 3 + col / 3) % 2 == 0) {
-                    field.setStyle("-fx-background-color: #f0f0f0; -fx-border-color: #B0B0B0;");
-                }
-
+    
+                // Set initial style with borders only
+                field.setStyle("-fx-background-color: white;" + getBaseStyle(row, col));
+    
                 gridFields[row][col] = field;
                 gridPane.add(field, col, row);
             }
         }
-
-        for (int row = 0; row < 9; row++) {
-            for (int col = 0; col < 9; col++) {
-                TextField field = gridFields[row][col];
-                StringBuilder style = new StringBuilder();
-                if (row % 3 == 0) style.append("-fx-border-width: 3 0 0 0; ");
-                if (col % 3 == 0) style.append("-fx-border-width: 0 0 0 3; ");
-                if (row % 3 == 2) style.append("-fx-border-width: 0 0 3 0; ");
-                if (col % 3 == 2) style.append("-fx-border-width: 0 3 0 0; ");
-                style.append("-fx-border-color: black;");
-                field.setStyle(field.getStyle() + style);
-            }
-        }
-
+    
         return gridPane;
     }
 
@@ -176,24 +188,45 @@ public class SudokuGUI {
                     System.out.println("Server response: " + response);
                     Platform.runLater(() -> {
                         messageLabel.setText(response);
-                        messageLabel.setTextFill(response.startsWith("ERROR") ? Color.RED : Color.GREEN);
+                        String cellKey = selectedRow + "," + selectedCol;
                         if (response.startsWith("SUCCESS")) {
-                            // Mark as user-entered cell
-                            userEnteredCells.add(selectedRow + "," + selectedCol);
-                            // Update cell as user-entered: editable, light green
+                            messageLabel.setTextFill(Color.GREEN);
+                            userEnteredCells.add(cellKey);
                             selectedField.setText(value.toLowerCase());
                             selectedField.setEditable(true);
                             selectedField.setStyle("-fx-background-color: #e0ffe0;" + getBaseStyle(selectedRow, selectedCol));
                             System.out.println("Cell [" + selectedRow + "," + selectedCol + "] updated: value=" + value.toLowerCase() + ", editable=" + selectedField.isEditable() + ", userEnteredCells=" + userEnteredCells);
                             try {
-                                if (server.isGameOver(callback)) {
+                                boolean gameOver = server.isGameOver(callback);
+                                System.out.println("Game over check: " + gameOver);
+                                if (gameOver) {
                                     messageLabel.setText("Congratulations! Puzzle completed.");
                                     showGameOverDialog();
                                 }
                             } catch (RemoteException e) {
+                                System.err.println("Error checking game status: " + e.getMessage());
                                 messageLabel.setText("Error checking game status: " + e.getMessage());
                                 messageLabel.setTextFill(Color.RED);
                             }
+                        } else {
+                            // Invalid move: set cell to red temporarily
+                            messageLabel.setTextFill(Color.RED);
+                            selectedField.setStyle("-fx-background-color: #ffcccc;" + getBaseStyle(selectedRow, selectedCol));
+                            // Revert color after 1 second
+                            new Thread(() -> {
+                                try {
+                                    Thread.sleep(1000);
+                                    Platform.runLater(() -> {
+                                        selectedField.setText(""); // Clear invalid value
+                                        // Revert to green if previously valid, else white
+                                        String revertColor = userEnteredCells.contains(cellKey) ? "#e0ffe0" : "white";
+                                        selectedField.setStyle("-fx-background-color: " + revertColor + ";" + getBaseStyle(selectedRow, selectedCol));
+                                        System.out.println("Cell [" + selectedRow + "," + selectedCol + "] reverted: color=" + revertColor + ", userEnteredCells=" + userEnteredCells);
+                                    });
+                                } catch (InterruptedException e) {
+                                    Thread.currentThread().interrupt();
+                                }
+                            }).start();
                         }
                     });
                     return;
@@ -205,6 +238,7 @@ public class SudokuGUI {
                 messageLabel.setTextFill(Color.RED);
             }
         } catch (RemoteException e) {
+            System.err.println("Error submitting move: " + e.getMessage());
             messageLabel.setText("Error submitting move: " + e.getMessage());
             messageLabel.setTextFill(Color.RED);
         }
@@ -212,9 +246,7 @@ public class SudokuGUI {
 
     private String getBaseStyle(int row, int col) {
         StringBuilder style = new StringBuilder();
-        if ((row / 3 + col / 3) % 2 == 0) {
-            style.append("-fx-background-color: #f0f0f0; -fx-border-color: #B0B0B0;");
-        }
+        // Set thicker borders for 3x3 subgrid boundaries
         if (row % 3 == 0) style.append("-fx-border-width: 3 0 0 0; ");
         if (col % 3 == 0) style.append("-fx-border-width: 0 0 0 3; ");
         if (row % 3 == 2) style.append("-fx-border-width: 0 0 3 0; ");
@@ -224,6 +256,7 @@ public class SudokuGUI {
     }
 
     private void showGameOverDialog() {
+        System.out.println("Showing game over dialog");
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("Game Over");
         alert.setHeaderText("Congratulations! You completed the puzzle.");
@@ -235,13 +268,14 @@ public class SudokuGUI {
             if (response == yesButton) {
                 try {
                     server.resetGame(callback);
-                    userEnteredCells.clear(); // Clear user-entered cells on reset
+                    userEnteredCells.clear();
+                    messageLabel.setText("Game reset! New puzzle started.");
                 } catch (RemoteException e) {
                     messageLabel.setText("Error resetting game: " + e.getMessage());
                     messageLabel.setTextFill(Color.RED);
                 }
             } else {
-                Platform.exit();
+                disconnectAndExit();
             }
         });
     }
@@ -296,22 +330,21 @@ public class SudokuGUI {
                             field.setText("");
                             field.setEditable(true);
                             field.setStyle("-fx-background-color: white;" + getBaseStyle(row, col));
-                            userEnteredCells.remove(cellKey); // Not user-entered anymore
+                            userEnteredCells.remove(cellKey);
                             System.out.println("Cell [" + row + "," + col + "] set: empty, editable=true, userEnteredCells=" + userEnteredCells);
                         } else if (cell.matches("[1-9]")) {
-                            field.setText(cell.toLowerCase()); // Normalize to lowercase for display
+                            String displayValue = cell.toLowerCase();
+                            field.setText(displayValue);
                             if (userEnteredCells.contains(cellKey)) {
-                                // User-entered cell
                                 field.setEditable(true);
                                 field.setStyle("-fx-background-color: #e0ffe0;" + getBaseStyle(row, col));
                                 userEnteredCount++;
-                                System.out.println("Cell [" + row + "," + col + "] set: user-entered, value=" + cell.toLowerCase() + ", editable=true, userEnteredCells=" + userEnteredCells);
+                                System.out.println("Cell [" + row + "," + col + "] set: user-entered, value=" + displayValue + ", editable=true, userEnteredCells=" + userEnteredCells);
                             } else {
-                                // Pre-filled cell
                                 field.setEditable(false);
                                 field.setStyle("-fx-background-color: #d3d3d3;" + getBaseStyle(row, col));
                                 preFilledCount++;
-                                System.out.println("Cell [" + row + "," + col + "] set: pre-filled, value=" + cell.toLowerCase() + ", editable=false, userEnteredCells=" + userEnteredCells);
+                                System.out.println("Cell [" + row + "," + col + "] set: pre-filled, value=" + displayValue + ", editable=false, userEnteredCells=" + userEnteredCells);
                             }
                         } else {
                             System.err.println("Invalid cell value at [" + row + "," + col + "]: " + cell);

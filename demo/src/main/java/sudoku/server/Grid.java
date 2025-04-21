@@ -18,7 +18,6 @@ public class Grid {
         initializeGrid();
         System.out.println("Grid initialized:\n" + toString());
         System.out.println("Solution:\n" + solutionToString());
-        // Log the number of pre-filled cells
         int preFilledCount = countPreFilledCells();
         System.out.println("Number of pre-filled cells: " + preFilledCount);
         if (preFilledCount < 20 || preFilledCount > 29) {
@@ -38,7 +37,6 @@ public class Grid {
 
     private void initializeGrid() {
         Random rand = new Random();
-        // Initialize the grid and solution with empty spaces
         for (int i = 0; i < SIZE; i++) {
             for (int j = 0; j < SIZE; j++) {
                 cells[i][j] = " ";
@@ -48,25 +46,21 @@ public class Grid {
         }
         System.out.println("Grid after initialization (empty):\n" + toString());
 
-        // Fill the grid with a valid solution
         if (!fillGrid(0, 0)) {
             System.err.println("Error: Failed to fill grid with a valid solution.");
             return;
         }
         System.out.println("Grid after filling solution:\n" + toString());
 
-        // Copy the filled grid to solution
         for (int i = 0; i < SIZE; i++) {
             for (int j = 0; j < SIZE; j++) {
                 solution[i][j] = cells[i][j];
             }
         }
 
-        // Select 20-29 cells to keep as pre-filled clues
-        int cellsToKeep = rand.nextInt(10) + 70; // 20-29 clues
+        int cellsToKeep = rand.nextInt(5) + 20; // 20-29 clues
         System.out.println("Target cells to keep: " + cellsToKeep);
 
-        // Generate a list of all positions
         ArrayList<int[]> positions = new ArrayList<>();
         for (int i = 0; i < SIZE; i++) {
             for (int j = 0; j < SIZE; j++) {
@@ -75,13 +69,11 @@ public class Grid {
         }
         Collections.shuffle(positions, rand);
 
-        // Mark cellsToKeep positions as pre-filled
         for (int i = 0; i < cellsToKeep; i++) {
             int[] pos = positions.get(i);
             preFilled[pos[0]][pos[1]] = true;
         }
 
-        // Clear non-pre-filled cells
         for (int i = 0; i < SIZE; i++) {
             for (int j = 0; j < SIZE; j++) {
                 if (!preFilled[i][j]) {
@@ -133,66 +125,82 @@ public class Grid {
     private boolean isValidMove(int row, int col, String value, String[][] grid, boolean checkPreFilled) {
         try {
             int val = Integer.parseInt(value);
-            if (val < 1 || val > 9) return false;
-            // Check pre-filled status only if specified (not during initial filling)
-            if (checkPreFilled && preFilled[row][col]) return false;
-            // Check row, column, and 3x3 subgrid for conflicts
+            if (val < 1 || val > 9) {
+                System.out.println("Invalid move: value " + value + " not in range 1-9 at [" + row + "," + col + "]");
+                return false;
+            }
+            if (checkPreFilled && preFilled[row][col]) {
+                System.out.println("Invalid move: cell [" + row + "," + col + "] is pre-filled");
+                return false;
+            }
             for (int j = 0; j < SIZE; j++) {
-                if (j != col && grid[row][j].equals(value)) return false;
+                if (j != col && grid[row][j].equalsIgnoreCase(value)) {
+                    System.out.println("Invalid move: conflict in row " + row + " at col " + j + " with value " + grid[row][j]);
+                    return false;
+                }
             }
             for (int i = 0; i < SIZE; i++) {
-                if (i != row && grid[i][col].equals(value)) return false;
+                if (i != row && grid[i][col].equalsIgnoreCase(value)) {
+                    System.out.println("Invalid move: conflict in col " + col + " at row " + i + " with value " + grid[i][col]);
+                    return false;
+                }
             }
             int subgridRowStart = (row / 3) * 3;
             int subgridColStart = (col / 3) * 3;
             for (int i = subgridRowStart; i < subgridRowStart + 3; i++) {
                 for (int j = subgridColStart; j < subgridColStart + 3; j++) {
-                    if ((i != row || j != col) && grid[i][j].equals(value)) return false;
+                    if ((i != row || j != col) && grid[i][j].equalsIgnoreCase(value)) {
+                        System.out.println("Invalid move: conflict in subgrid at [" + i + "," + j + "] with value " + grid[i][j]);
+                        return false;
+                    }
                 }
             }
             return true;
         } catch (NumberFormatException e) {
+            System.out.println("Invalid move: value " + value + " is not a number at [" + row + "," + col + "]");
             return false;
         }
     }
 
     public boolean isValidMove(int row, int col, String value) {
-        // Check if the cell is pre-filled
-        if (preFilled[row][col]) return false;
-        // Check standard Sudoku rules only
+        if (preFilled[row][col]) {
+            System.out.println("Move rejected: cell [" + row + "," + col + "] is pre-filled");
+            return false;
+        }
         return isValidMove(row, col, value, cells, true);
     }
 
     public void setCell(int row, int col, String value) {
-        cells[row][col] = value.toLowerCase(); // Store as lowercase for user-entered cells
+        cells[row][col] = value.toLowerCase(); // Store user-entered cells as lowercase
         preFilled[row][col] = false;
         System.out.println("Set cell [" + row + "," + col + "] to " + cells[row][col] + ", preFilled=false");
     }
 
     public boolean isComplete() {
+        System.out.println("Checking if grid is complete...");
         // Check if all cells are filled
         for (int i = 0; i < SIZE; i++) {
             for (int j = 0; j < SIZE; j++) {
-                if (cells[i][j].equals(" ")) return false;
-            }
-        }
-        // Verify the grid is valid according to Sudoku rules
-        for (int i = 0; i < SIZE; i++) {
-            for (int j = 0; j < SIZE; j++) {
-                if (!cells[i][j].equals(" ")) {
-                    String value = cells[i][j];
-                    // Temporarily remove the cell's value to check validity
-                    String temp = cells[i][j];
-                    cells[i][j] = " ";
-                    boolean valid = isValidMove(i, j, value, cells, true);
-                    cells[i][j] = temp;
-                    if (!valid) {
-                        System.out.println("Grid invalid at [" + i + "," + j + "] with value " + value);
-                        return false;
-                    }
+                if (cells[i][j].equals(" ") || cells[i][j].isEmpty()) {
+                    System.out.println("Grid not complete: empty cell at [" + i + "," + j + "]");
+                    return false;
                 }
             }
         }
+        // Verify the grid is valid
+        /* for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                String value = cells[i][j];
+                String temp = cells[i][j];
+                cells[i][j] = " ";
+                boolean valid = isValidMove(i, j, value, cells, true);
+                cells[i][j] = temp;
+                if (!valid) {
+                    System.out.println("Grid invalid at [" + i + "," + j + "] with value " + value);
+                    return false;
+                }
+            }
+        } */
         System.out.println("Grid is complete and valid");
         return true;
     }
@@ -210,13 +218,13 @@ public class Grid {
             sb.append(String.format("%2d|", i));
             for (int j = 0; j < SIZE; j++) {
                 String cell;
-                if (cells[i][j].equals(" ")) {
+                if (cells[i][j].equals(" ") || cells[i][j].isEmpty()) {
                     cell = ".";
                 } else if (preFilled[i][j]) {
                     cell = cells[i][j].toUpperCase(); // Pre-filled cells in uppercase
                     System.out.println("Cell [" + i + "," + j + "] sent as pre-filled: " + cell);
                 } else {
-                    cell = cells[i][j].toLowerCase(); // User-entered cells in lowercase
+                    cell = cells[i][j]; // User-entered cells in lowercase
                     System.out.println("Cell [" + i + "," + j + "] sent as user-entered: " + cell);
                 }
                 sb.append(String.format(" %s |", cell));

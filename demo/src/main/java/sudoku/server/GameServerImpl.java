@@ -1,6 +1,9 @@
 package sudoku.server;
 
 import java.rmi.RemoteException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import common.CallbackInterface;
 import common.GameInterface;
@@ -10,12 +13,20 @@ public class GameServerImpl implements GameInterface {
     private CallbackInterface client;
     private GameFactoryImpl factory;
     private boolean clientRegistered = false;
-
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     public GameServerImpl(GameFactoryImpl factory) throws RemoteException {
         this.factory = factory;
         grid = new Grid();
         displayGrid();
+        scheduler.scheduleAtFixedRate(() -> {
+            try {
+                factory.updateClientActivity(this);
+            } catch (Exception e) {
+                System.err.println("Error updating client activity: " + e.getMessage());
+            }
+        }, 10, 10, TimeUnit.SECONDS);
     }
+    
 
     private void displayGrid() {
         System.out.println("Client grid:\n" + grid.toString());
@@ -99,10 +110,17 @@ public class GameServerImpl implements GameInterface {
         try {
             clientRegistered = false;
             client = null;
-            factory.clientDisconnected();
+            factory.clientDisconnected(this); // Call with this instance
+            scheduler.shutdownNow();
             System.out.println("Client disconnected from game instance.");
         } catch (Exception e) {
             System.err.println("Error notifying factory of disconnection: " + e.getMessage());
         }
+    }
+    @Override
+    public synchronized void disconnect(CallbackInterface client) throws RemoteException {
+        
+            disconnectClient();
+        
     }
 }
