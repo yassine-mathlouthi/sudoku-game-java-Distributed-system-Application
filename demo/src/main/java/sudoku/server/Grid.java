@@ -58,7 +58,7 @@ public class Grid {
             }
         }
 
-        int cellsToKeep = rand.nextInt(10) + 70; // 20-29 clues
+        int cellsToKeep = rand.nextInt(5) + 20; // 20-29 clues
         System.out.println("Target cells to keep: " + cellsToKeep);
 
         ArrayList<int[]> positions = new ArrayList<>();

@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit;
 import common.GameInterface;
 
 public class GameFactoryImpl implements GameFactory {
-    private final int MAX_CLIENTS = 3; // Increased limit
+    private final int MAX_CLIENTS = 2; // Increased limit
     private final Map<GameServerImpl, Long> activeClients = new ConcurrentHashMap<>();
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private static final long CLIENT_TIMEOUT_MS = 30_000; // 30 seconds

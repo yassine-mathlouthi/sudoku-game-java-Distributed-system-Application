@@ -73,7 +73,7 @@ public class SudokuGUI {
 
         styleButton(submitButton);
         styleButton(replayButton);
-        styleButton(quitButton);
+        styleRedButton(quitButton);
 
         controlBox.getChildren().addAll(submitButton, replayButton, quitButton);
         root.setTop(controlBox);
@@ -103,7 +103,12 @@ public class SudokuGUI {
         primaryStage.setScene(scene);
         primaryStage.show();
     }
-
+    private void styleRedButton(Button button) {
+        button.setStyle("-fx-background-color: #f44336; -fx-text-fill: white; -fx-font-size: 14px; -fx-border-radius: 5; -fx-padding: 10 20;");
+        button.setEffect(new DropShadow(10, Color.GRAY));
+        button.setOnMouseEntered(e -> button.setStyle("-fx-background-color: #d32f2f; -fx-text-fill: white; -fx-font-size: 14px; -fx-border-radius: 5; -fx-padding: 10 20;"));
+        button.setOnMouseExited(e -> button.setStyle("-fx-background-color: #f44336; -fx-text-fill: white; -fx-font-size: 14px; -fx-border-radius: 5; -fx-padding: 10 20;"));
+    }
     private void disconnectAndExit() {
         try {
             if (server != null && callback != null) {
