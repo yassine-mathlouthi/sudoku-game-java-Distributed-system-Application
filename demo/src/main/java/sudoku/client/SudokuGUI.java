@@ -15,7 +15,9 @@ import javafx.scene.effect.DropShadow;
 
 import java.rmi.RemoteException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class SudokuGUI {
     private GameInterface server;
@@ -28,9 +30,11 @@ public class SudokuGUI {
     private Stage primaryStage;
     private int selectedRow = -1;
     private int selectedCol = -1;
+    private Set<String> userEnteredCells; // Tracks user-entered cells as "row,col"
 
     public SudokuGUI() {
         System.out.println("SudokuGUI instance created: " + this);
+        userEnteredCells = new HashSet<>();
     }
 
     public void setDependencies(GameInterface server, CallbackInterface callback) {
@@ -78,6 +82,7 @@ public class SudokuGUI {
         replayButton.setOnAction(e -> {
             try {
                 server.resetGame(callback);
+                userEnteredCells.clear(); // Clear user-entered cells on reset
                 messageLabel.setText("Game reset! New puzzle started.");
             } catch (RemoteException ex) {
                 messageLabel.setText("Error resetting game: " + ex.getMessage());
@@ -120,6 +125,7 @@ public class SudokuGUI {
                 field.setOnMouseClicked(e -> {
                     selectedRow = finalRow;
                     selectedCol = finalCol;
+                    System.out.println("Selected cell [" + finalRow + "," + finalCol + "], editable=" + field.isEditable());
                 });
 
                 field.textProperty().addListener((obs, oldVal, newVal) -> {
@@ -156,7 +162,14 @@ public class SudokuGUI {
     private void submitMove() {
         try {
             if (selectedRow != -1 && selectedCol != -1) {
-                String value = gridFields[selectedRow][selectedCol].getText();
+                TextField selectedField = gridFields[selectedRow][selectedCol];
+                System.out.println("Submitting move for cell [" + selectedRow + "," + selectedCol + "], editable=" + selectedField.isEditable() + ", value=" + selectedField.getText());
+                if (!selectedField.isEditable()) {
+                    messageLabel.setText("Cannot modify pre-filled cell.");
+                    messageLabel.setTextFill(Color.RED);
+                    return;
+                }
+                String value = selectedField.getText();
                 if (!value.isEmpty()) {
                     System.out.println("Submitting move: row=" + selectedRow + ", col=" + selectedCol + ", value=" + value);
                     String response = server.makeMove(callback, selectedRow, selectedCol, value);
@@ -164,25 +177,50 @@ public class SudokuGUI {
                     Platform.runLater(() -> {
                         messageLabel.setText(response);
                         messageLabel.setTextFill(response.startsWith("ERROR") ? Color.RED : Color.GREEN);
-                        try {
-                            if (response.startsWith("SUCCESS") && server.isGameOver(callback)) {
-                                messageLabel.setText("Congratulations! Puzzle completed.");
-                                showGameOverDialog();
+                        if (response.startsWith("SUCCESS")) {
+                            // Mark as user-entered cell
+                            userEnteredCells.add(selectedRow + "," + selectedCol);
+                            // Update cell as user-entered: editable, light green
+                            selectedField.setText(value.toLowerCase());
+                            selectedField.setEditable(true);
+                            selectedField.setStyle("-fx-background-color: #e0ffe0;" + getBaseStyle(selectedRow, selectedCol));
+                            System.out.println("Cell [" + selectedRow + "," + selectedCol + "] updated: value=" + value.toLowerCase() + ", editable=" + selectedField.isEditable() + ", userEnteredCells=" + userEnteredCells);
+                            try {
+                                if (server.isGameOver(callback)) {
+                                    messageLabel.setText("Congratulations! Puzzle completed.");
+                                    showGameOverDialog();
+                                }
+                            } catch (RemoteException e) {
+                                messageLabel.setText("Error checking game status: " + e.getMessage());
+                                messageLabel.setTextFill(Color.RED);
                             }
-                        } catch (RemoteException e) {
-                            messageLabel.setText("Error checking game status: " + e.getMessage());
-                            messageLabel.setTextFill(Color.RED);
                         }
                     });
                     return;
                 }
+                messageLabel.setText("Please enter a value in the selected cell.");
+                messageLabel.setTextFill(Color.RED);
+            } else {
+                messageLabel.setText("Please select a cell.");
+                messageLabel.setTextFill(Color.RED);
             }
-            messageLabel.setText("Please select a cell and enter a value.");
-            messageLabel.setTextFill(Color.RED);
         } catch (RemoteException e) {
             messageLabel.setText("Error submitting move: " + e.getMessage());
             messageLabel.setTextFill(Color.RED);
         }
+    }
+
+    private String getBaseStyle(int row, int col) {
+        StringBuilder style = new StringBuilder();
+        if ((row / 3 + col / 3) % 2 == 0) {
+            style.append("-fx-background-color: #f0f0f0; -fx-border-color: #B0B0B0;");
+        }
+        if (row % 3 == 0) style.append("-fx-border-width: 3 0 0 0; ");
+        if (col % 3 == 0) style.append("-fx-border-width: 0 0 0 3; ");
+        if (row % 3 == 2) style.append("-fx-border-width: 0 0 3 0; ");
+        if (col % 3 == 2) style.append("-fx-border-width: 0 3 0 0; ");
+        style.append("-fx-border-color: black;");
+        return style.toString();
     }
 
     private void showGameOverDialog() {
@@ -197,6 +235,7 @@ public class SudokuGUI {
             if (response == yesButton) {
                 try {
                     server.resetGame(callback);
+                    userEnteredCells.clear(); // Clear user-entered cells on reset
                 } catch (RemoteException e) {
                     messageLabel.setText("Error resetting game: " + e.getMessage());
                     messageLabel.setTextFill(Color.RED);
@@ -208,7 +247,16 @@ public class SudokuGUI {
     }
 
     public void updateGrid(String gridString) {
-        System.out.println("Updating GUI with grid string (length: " + gridString.length() + "):\n" + gridString);
+        System.out.println("Updating GUI with grid string (length: " + (gridString != null ? gridString.length() : "null") + "):\n" + (gridString != null ? gridString : "null"));
+        if (gridString == null || gridString.trim().isEmpty()) {
+            System.err.println("Error: Grid string is null or empty");
+            Platform.runLater(() -> {
+                messageLabel.setText("Error: Received empty grid from server.");
+                messageLabel.setTextFill(Color.RED);
+            });
+            return;
+        }
+
         Platform.runLater(() -> {
             try {
                 String[] lines = gridString.split("\n");
@@ -226,6 +274,9 @@ public class SudokuGUI {
                     throw new IllegalArgumentException("Expected 9 data rows, found: " + dataLines.size());
                 }
 
+                int preFilledCount = 0;
+                int userEnteredCount = 0;
+
                 for (int row = 0; row < 9; row++) {
                     String line = dataLines.get(row);
                     System.out.println("Parsing row " + row + ": " + line);
@@ -239,19 +290,48 @@ public class SudokuGUI {
                         String cell = cells[col].trim();
                         System.out.println("Cell [" + row + "," + col + "] = " + cell);
                         TextField field = gridFields[row][col];
+                        String cellKey = row + "," + col;
+
                         if (cell.equals(".") || cell.isEmpty()) {
                             field.setText("");
                             field.setEditable(true);
-                            field.setStyle("-fx-background-color: white;" + field.getStyle());
+                            field.setStyle("-fx-background-color: white;" + getBaseStyle(row, col));
+                            userEnteredCells.remove(cellKey); // Not user-entered anymore
+                            System.out.println("Cell [" + row + "," + col + "] set: empty, editable=true, userEnteredCells=" + userEnteredCells);
+                        } else if (cell.matches("[1-9]")) {
+                            field.setText(cell.toLowerCase()); // Normalize to lowercase for display
+                            if (userEnteredCells.contains(cellKey)) {
+                                // User-entered cell
+                                field.setEditable(true);
+                                field.setStyle("-fx-background-color: #e0ffe0;" + getBaseStyle(row, col));
+                                userEnteredCount++;
+                                System.out.println("Cell [" + row + "," + col + "] set: user-entered, value=" + cell.toLowerCase() + ", editable=true, userEnteredCells=" + userEnteredCells);
+                            } else {
+                                // Pre-filled cell
+                                field.setEditable(false);
+                                field.setStyle("-fx-background-color: #d3d3d3;" + getBaseStyle(row, col));
+                                preFilledCount++;
+                                System.out.println("Cell [" + row + "," + col + "] set: pre-filled, value=" + cell.toLowerCase() + ", editable=false, userEnteredCells=" + userEnteredCells);
+                            }
                         } else {
-                            field.setText(cell);
-                            field.setEditable(false);
-                            field.setStyle("-fx-background-color: #d3d3d3;" + field.getStyle());
+                            System.err.println("Invalid cell value at [" + row + "," + col + "]: " + cell);
+                            field.setText("");
+                            field.setEditable(true);
+                            field.setStyle("-fx-background-color: white;" + getBaseStyle(row, col));
+                            userEnteredCells.remove(cellKey);
+                            System.out.println("Cell [" + row + "," + col + "] set: invalid, cleared, editable=true, userEnteredCells=" + userEnteredCells);
                         }
                     }
                 }
 
-                System.out.println("Grid rendering completed.");
+                System.out.println("Grid rendering completed. Parsed pre-filled cells: " + preFilledCount + ", user-entered cells: " + userEnteredCount);
+                if (preFilledCount == 0) {
+                    System.err.println("Error: No pre-filled cells parsed. Initial grid may be empty.");
+                    messageLabel.setText("Error: No pre-filled cells in initial grid.");
+                    messageLabel.setTextFill(Color.RED);
+                } else if (preFilledCount < 20 || preFilledCount > 29) {
+                    System.err.println("Warning: Unexpected number of pre-filled cells: " + preFilledCount);
+                }
             } catch (Exception e) {
                 System.err.println("Error rendering grid: " + e.getMessage());
                 e.printStackTrace();

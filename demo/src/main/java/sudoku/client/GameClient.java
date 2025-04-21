@@ -153,6 +153,7 @@ public class GameClient extends Application implements CallbackInterface {
 
     public static void main(String[] args) {
         try {
+            System.setProperty("java.rmi.server.codebase", "http://localhost/sudoku-classes/");
             System.setProperty("java.security.policy", "security/SecurityPolicy.policy");
             System.out.println("Launching JavaFX application...");
             Application.launch(GameClient.class, args);

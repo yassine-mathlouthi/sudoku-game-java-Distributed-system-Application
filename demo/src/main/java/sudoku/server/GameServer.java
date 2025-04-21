@@ -7,6 +7,8 @@ import java.rmi.server.UnicastRemoteObject;
 public class GameServer {
     public static void main(String[] args) {
         try {
+
+            System.setProperty("java.rmi.server.codebase", "http://localhost/sudoku-classes/");
             // Set security manager
             
             System.setProperty("java.security.policy", "security/SecurityPolicy.policy");
