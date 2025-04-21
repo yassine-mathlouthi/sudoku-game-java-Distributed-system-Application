@@ -173,7 +173,6 @@ public class Grid {
     public void setCell(int row, int col, String value) {
         cells[row][col] = value.toLowerCase(); // Store user-entered cells as lowercase
         preFilled[row][col] = false;
-        System.out.println("Set cell [" + row + "," + col + "] to " + cells[row][col] + ", preFilled=false");
     }
 
     public boolean isComplete() {
@@ -222,10 +221,8 @@ public class Grid {
                     cell = ".";
                 } else if (preFilled[i][j]) {
                     cell = cells[i][j].toUpperCase(); // Pre-filled cells in uppercase
-                    System.out.println("Cell [" + i + "," + j + "] sent as pre-filled: " + cell);
                 } else {
                     cell = cells[i][j]; // User-entered cells in lowercase
-                    System.out.println("Cell [" + i + "," + j + "] sent as user-entered: " + cell);
                 }
                 sb.append(String.format(" %s |", cell));
             }
