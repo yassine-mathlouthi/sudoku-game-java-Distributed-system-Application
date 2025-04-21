@@ -12,7 +12,7 @@ A client-server Sudoku game implemented in Java using RMI (Remote Method Invocat
 
 ## Requirements
 
-- **Java Version**: JDK 17 or later
+- **Java Version**: JDK 11 or later
 - **JavaFX**: JavaFX SDK 17 or later
 - **Build Tool**: Maven or Gradle (optional, for dependency management)
 - **Operating System**: Windows, macOS, or Linux
@@ -36,7 +36,7 @@ A client-server Sudoku game implemented in Java using RMI (Remote Method Invocat
    ```bash
    java "-Djava.security.policy=security.SecurityPolicy.policy" "-Djava.rmi.server.codebase=http://localhost/sudoku-classes/" sudoku.server.GameServer
    java "-Djava.security.policy=security.SecurityPolicy.policy" "-Djava.rmi.server.codebase=http://localhost/sudoku-classes/" sudoku.server.GameServer
-3. **Compilation et Exécution Server**:
+3. **Compilation et Exécution Client**:
 
    ```bash
     javac --module-path "\path\to\javafx-sdk-17.0.15\lib" --add-modules javafx.controls,javafx.fxml sudoku/client/*.java sudoku/server/*.java common/*.java
