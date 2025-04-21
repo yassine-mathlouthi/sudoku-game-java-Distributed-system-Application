@@ -29,8 +29,8 @@ A client-server Sudoku game implemented in Java using RMI (Remote Method Invocat
 1. **Clone the Repository**:
 
    ```bash
-   git clone https://github.com/yourusername/sudoku-game.git
-   cd sudoku-game
+   git clone https://github.com/yourusername/sudoku-game.git](https://github.com/yassine-mathlouthi/sudoku-game-java-Distributed-system-Application.git
+   cd sudoku-game-java-Distributed-system-Application
 2. **Compilation et Exécution Server**:
 
    ```bash
