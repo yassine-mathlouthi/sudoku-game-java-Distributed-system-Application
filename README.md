@@ -35,12 +35,11 @@ A client-server Sudoku game implemented in Java using RMI (Remote Method Invocat
 
    ```bash
    java "-Djava.security.policy=security.SecurityPolicy.policy" "-Djava.rmi.server.codebase=http://localhost/sudoku-classes/" sudoku.server.GameServer
-    java "-Djava.security.policy=security.SecurityPolicy.policy" "-Djava.rmi.server.codebase=http://localhost/sudoku-classes/" sudoku.server.GameServer
+   java "-Djava.security.policy=security.SecurityPolicy.policy" "-Djava.rmi.server.codebase=http://localhost/sudoku-classes/" sudoku.server.GameServer
 3. **Compilation et Exécution Server**:
 
    ```bash
-    javac --module-path "\path\to\javafx-sdk-17.0.15\lib" --add-modules javafx.controls,javafx.fxml sudoku/client/*.java sudoku/server/*.java 
-common/*.java
+    javac --module-path "\path\to\javafx-sdk-17.0.15\lib" --add-modules javafx.controls,javafx.fxml sudoku/client/*.java sudoku/server/*.java common/*.java
     java "-Djava.security.policy=security.SecurityPolicy.policy" "-Djava.rmi.server.codebase=http://localhost/sudoku-classes/" --module-path "\path\to\javafx-sdk-17.0.15\lib" --add-modules javafx.controls,javafx.fxml sudoku.client.GameClient
 ![image](https://github.com/user-attachments/assets/05b4e77b-8211-43b5-9834-b0b3200af8ce)
 ![image](https://github.com/user-attachments/assets/5c038371-0bb5-4ee5-a23e-4e7d6b54b271)
